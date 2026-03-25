@@ -30,8 +30,8 @@ strokeBtn.Thickness = 2
 
 -- 🧱 PAINEL
 local frame = Instance.new("Frame", gui)
-frame.Size = UDim2.new(0,260,0,380)
-frame.Position = UDim2.new(0.5,-130,0.5,-190)
+frame.Size = UDim2.new(0,280,0,510)
+frame.Position = UDim2.new(0.5,-140,0.5,-255)
 frame.BackgroundColor3 = Color3.fromRGB(0,0,0)
 frame.Visible = false
 frame.Active = true
@@ -111,14 +111,94 @@ local function criarToggle(nome, posY)
 	return function() return state end
 end
 
+-- 🔘 SLIDER (para velocidade)
+local function criarSlider(nome, posY, min, max, padrao)
+	local bg = Instance.new("Frame", frame)
+	bg.Size = UDim2.new(1,-20,0,60)
+	bg.Position = UDim2.new(0,10,0,posY)
+	bg.BackgroundColor3 = Color3.fromRGB(40,40,40)
+	
+	Instance.new("UICorner", bg).CornerRadius = UDim.new(0,8)
+	
+	local txt = Instance.new("TextLabel", bg)
+	txt.Size = UDim2.new(1,0,0,20)
+	txt.Position = UDim2.new(0,10,0,5)
+	txt.Text = nome
+	txt.Font = Enum.Font.GothamBold
+	txt.TextColor3 = Color3.new(1,1,1)
+	txt.BackgroundTransparency = 1
+	txt.TextXAlignment = Enum.TextXAlignment.Left
+	
+	local valorTxt = Instance.new("TextLabel", bg)
+	valorTxt.Size = UDim2.new(0,50,0,20)
+	valorTxt.Position = UDim2.new(1,-60,0,5)
+	valorTxt.Text = tostring(padrao)
+	valorTxt.Font = Enum.Font.GothamBold
+	valorTxt.TextColor3 = Color3.fromRGB(0,170,0)
+	valorTxt.BackgroundTransparency = 1
+	
+	local sliderBg = Instance.new("Frame", bg)
+	sliderBg.Size = UDim2.new(1,-20,0,4)
+	sliderBg.Position = UDim2.new(0,10,0,35)
+	sliderBg.BackgroundColor3 = Color3.fromRGB(80,80,80)
+	Instance.new("UICorner", sliderBg).CornerRadius = UDim.new(1,0)
+	
+	local sliderFill = Instance.new("Frame", sliderBg)
+	sliderFill.Size = UDim2.new((padrao - min) / (max - min), 0, 1, 0)
+	sliderFill.BackgroundColor3 = Color3.fromRGB(0,170,0)
+	Instance.new("UICorner", sliderFill).CornerRadius = UDim.new(1,0)
+	
+	local sliderBtn = Instance.new("TextButton", sliderBg)
+	sliderBtn.Size = UDim2.new(0,12,0,12)
+	sliderBtn.Position = UDim2.new((padrao - min) / (max - min), -0.5, 0.5, -6)
+	sliderBtn.BackgroundColor3 = Color3.fromRGB(255,255,255)
+	sliderBtn.Text = ""
+	Instance.new("UICorner", sliderBtn).CornerRadius = UDim.new(1,0)
+	
+	local valor = padrao
+	local dragging = false
+	
+	sliderBtn.MouseButton1Down:Connect(function()
+		dragging = true
+	end)
+	
+	UserInputService.InputEnded:Connect(function(input)
+		if input.UserInputType == Enum.UserInputType.MouseButton1 then
+			dragging = false
+		end
+	end)
+	
+	RunService.RenderStepped:Connect(function()
+		if dragging then
+			local mousePos = UserInputService:GetMouseLocation()
+			local sliderAbsPos = sliderBg.AbsolutePosition
+			local sliderWidth = sliderBg.AbsoluteSize.X
+			
+			local percent = (mousePos.X - sliderAbsPos.X) / sliderWidth
+			percent = math.clamp(percent, 0, 1)
+			
+			valor = min + (max - min) * percent
+			valor = math.floor(valor)
+			
+			sliderFill.Size = UDim2.new(percent, 0, 1, 0)
+			sliderBtn.Position = UDim2.new(percent, -6, 0.5, -6)
+			valorTxt.Text = tostring(valor)
+		end
+	end)
+	
+	return function() return valor end
+end
+
 -- FUNÇÕES
 local getAuto = criarToggle("Auto Attack", 50)
-local getEsp = criarToggle("ESP", 100)
-local getSpin = criarToggle("Spin Bot", 150)
-local getReset = criarToggle("Reset Player", 200)
-local getJump = criarToggle("Super Pulo", 250)
-local getAutoHit = criarToggle("Auto Hit", 300) -- Auto Hit
-local getSpeed = criarToggle("Speed", 350) -- Speed
+local getEsp = criarToggle("ESP", 110)
+local getSpin = criarToggle("Spin Bot", 170)
+local getReset = criarToggle("Reset Player", 230)
+local getJump = criarToggle("Super Pulo", 290)
+local getAutoHit = criarToggle("Auto Hit", 350)
+local getAntiHit = criarToggle("Anti Hit", 410) -- Anti Hit
+local getSpeedToggle = criarToggle("Speed", 470)
+local speedValue = criarSlider("Velocidade", 530, 16, 120, 50)
 
 -- CRÉDITO
 local credit = Instance.new("TextLabel", frame)
@@ -176,7 +256,7 @@ RunService.RenderStepped:Connect(function()
 					local targetHrp = plr.Character.HumanoidRootPart
 					local d = (targetHrp.Position - hrp.Position).Magnitude
 					
-					if d < dist and d < 10 then -- Distância para bater
+					if d < dist and d < 10 then
 						dist = d
 						closest = plr
 					end
@@ -186,16 +266,13 @@ RunService.RenderStepped:Connect(function()
 			if closest and closest.Character then
 				local targetHumanoid = closest.Character:FindFirstChildOfClass("Humanoid")
 				if targetHumanoid and targetHumanoid.Health > 0 then
-					-- Executa o ataque
 					humanoid:MoveTo(closest.Character.HumanoidRootPart.Position)
 					
-					-- Simula clique do mouse para atacar
 					local tool = player.Character:FindFirstChildOfClass("Tool")
 					if tool then
 						tool:Activate()
 					end
 					
-					-- Alternativa: usa o equipamento ativo
 					local activeTool = player.Character:FindFirstChildOfClass("Tool")
 					if activeTool then
 						activeTool:Activate()
@@ -206,18 +283,93 @@ RunService.RenderStepped:Connect(function()
 	end
 end)
 
--- SPEED (Aumenta a velocidade)
+-- ANTI HIT (Imunidade a dano)
+local originalHealth = nil
+local originalMaxHealth = nil
+
 RunService.RenderStepped:Connect(function()
-	if getSpeed() and player.Character then
+	if getAntiHit() and player.Character then
 		local humanoid = player.Character:FindFirstChildOfClass("Humanoid")
 		if humanoid then
-			humanoid.WalkSpeed = 50
+			-- Salva a saúde original se ainda não salvou
+			if originalHealth == nil then
+				originalHealth = humanoid.Health
+				originalMaxHealth = humanoid.MaxHealth
+			end
+			
+			-- Mantém a saúde no máximo
+			if humanoid.Health < originalMaxHealth then
+				humanoid.Health = originalMaxHealth
+			end
+			
+			-- Remove efeitos de dano como queimadura, veneno, etc.
+			for _, effect in pairs(player.Character:GetChildren()) do
+				if effect:IsA("Fire") or effect:IsA("Smoke") or effect:IsA("Sparkles") then
+					effect:Destroy()
+				end
+			end
 		end
 	else
-		if player.Character then
+		-- Reseta quando desativado
+		if originalHealth ~= nil and player.Character then
 			local humanoid = player.Character:FindFirstChildOfClass("Humanoid")
-			if humanoid and humanoid.WalkSpeed == 50 then
-				humanoid.WalkSpeed = 16 -- Velocidade normal
+			if humanoid then
+				humanoid.Health = originalHealth
+			end
+			originalHealth = nil
+			originalMaxHealth = nil
+		end
+	end
+end)
+
+-- Conexão para detectar dano e prevenir (método alternativo)
+if player.Character then
+	local humanoid = player.Character:FindFirstChildOfClass("Humanoid")
+	if humanoid then
+		humanoid:GetPropertyChangedSignal("Health"):Connect(function()
+			if getAntiHit() and humanoid and originalMaxHealth then
+				if humanoid.Health < originalMaxHealth then
+					humanoid.Health = originalMaxHealth
+				end
+			end
+		end)
+	end
+end
+
+-- Conexão para quando o personagem renascer
+player.CharacterAdded:Connect(function(character)
+	task.wait(0.5)
+	local humanoid = character:FindFirstChildOfClass("Humanoid")
+	if humanoid then
+		humanoid:GetPropertyChangedSignal("Health"):Connect(function()
+			if getAntiHit() and humanoid then
+				local maxHealth = humanoid.MaxHealth
+				if humanoid.Health < maxHealth then
+					humanoid.Health = maxHealth
+				end
+			end
+		end)
+	end
+	
+	-- Atualiza a referência
+	if getAntiHit() then
+		originalHealth = nil
+		originalMaxHealth = nil
+	end
+end)
+
+-- SPEED (Velocidade ajustável)
+RunService.RenderStepped:Connect(function()
+	if player.Character then
+		local humanoid = player.Character:FindFirstChildOfClass("Humanoid")
+		if humanoid then
+			if getSpeedToggle() then
+				local speed = speedValue()
+				humanoid.WalkSpeed = speed
+			else
+				if humanoid.WalkSpeed ~= 16 then
+					humanoid.WalkSpeed = 16
+				end
 			end
 		end
 	end
@@ -268,7 +420,6 @@ RunService.RenderStepped:Connect(function()
 				local esp = head:FindFirstChild("ESP")
 				local aura = plr.Character:FindFirstChild("Aura")
 
-				-- ESP de distância
 				if not esp then
 					esp = Instance.new("BillboardGui", head)
 					esp.Name = "ESP"
@@ -289,7 +440,6 @@ RunService.RenderStepped:Connect(function()
 					txt.Text = math.floor(d).."m"
 				end
 				
-				-- Aura Vermelha (Highlight)
 				if not aura then
 					local highlight = Instance.new("Highlight")
 					highlight.Name = "Aura"
@@ -303,7 +453,6 @@ RunService.RenderStepped:Connect(function()
 			end
 		end
 	else
-		-- Remove ESP e Aura quando desativado
 		for _,plr in pairs(Players:GetPlayers()) do
 			if plr.Character and plr.Character:FindFirstChild("Head") then
 				local esp = plr.Character.Head:FindFirstChild("ESP")
@@ -313,5 +462,7 @@ RunService.RenderStepped:Connect(function()
 				plr.Character:FindFirstChild("Aura"):Destroy()
 			end
 		end
+	end
+end)
 	end
 end)
